@@ -1,4 +1,3 @@
-[![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-c66648af7eb3fe8bc4f294546bfd86ef473780cde1dea487d3c4ff354943c9ae.svg)](https://classroom.github.com/online_ide?assignment_repo_id=9308938&assignment_repo_type=AssignmentRepo)
 # A hidden Markov model gene-finder
 
 In the exercise below, you will implement and experiment with an example of how to apply a HMM for identifying coding regions(genes) in genetic material. We consider only procaryotes, which have a particular simple gene format. A gene is a sequence of triplets, codons, that encode proteins. We saw this in the first project. Now, we assume that we have a genomic sequence, and our goal is to recognise which part of the genome encodes genes, and which do not.
@@ -66,6 +65,8 @@ print(genome2.keys())
 
 It looks like you get a dictionary with two keys, `genome` and `annotation`, and I will bet you good money that the former is the genomic sequence and the second the annotation. Let's have a look at them (but don't print all of them, as they are quite long):
 
+while the annotation is a sequence over the letters
+
 
 ```python
 print(len(genome1['genome']), len(genome1['annotation']))
@@ -85,7 +86,7 @@ The genomic sequence is a sequence over the letters:
 print(set(genome1['genome']))
 ```
 
-    {'C', 'A', 'G', 'T'}
+    {'T', 'C', 'A', 'G'}
 
 
 while the annotation is a sequence over the letters
@@ -95,7 +96,7 @@ while the annotation is a sequence over the letters
 print(set(genome1['annotation']))
 ```
 
-    {'C', 'N', 'R'}
+    {'R', 'N', 'C'}
 
 
 that should be interpreted as non-coding, reverse-coding, and coding.
@@ -106,7 +107,7 @@ For the three-states model, the `pi` vector should have length three, and we sho
 
 We could use dictionaries for this indexing, but it is much more convinient to represent vectors as vectors and matrices as matrices (we will see how below), and that requires that we use integers as indices. We need to map the two strings into lists of integers, in some way such that for the genomic sequence the integers are 0, 1, 2, or 3, and such that the annotation maps to integers 0, 1, or 3.
 
-I'll show you have to map the genomic sequence, and then you should write a function for mapping the annotation.
+I'll show you how to map the genomic sequence, and then you should write a function for mapping the annotation.
 
 
 ```python
@@ -132,7 +133,6 @@ def rev_observed_states(obs: list[int]) -> str:
     'ACAGTTC'
     """
     return ''.join('ACGT'[x] for x in obs)
-
 ```
 
 
@@ -150,9 +150,6 @@ assert x == rev_observed_states(y)
 
 
 ```python
-# FIXME: You need to implement the corresponding function for annotations
-# In the figure above, the states map as C -> 0, N -> 1 and R -> 2 but
-# you do not need to use that; but you do need to be consistent everywhere
 def hidden_states(x: str) -> list[int]:
     """
     Map a genome annotation to hidden states (index 0, 1, or 2).
@@ -160,8 +157,8 @@ def hidden_states(x: str) -> list[int]:
     >>> hidden_states('NNCCCCCCNNRRRRRRN')
     [1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 2, 1]
     """
-    map = {'C': 0, 'N': 1, 'R': 2}
-    return [map[a] for a in x]
+    map = {'C':0, 'N':1, 'R':2}
+    return [map[HMM] for HMM in x] 
 
 def rev_hidden_states(hid: list[int]) -> str:
     """
@@ -173,8 +170,7 @@ def rev_hidden_states(hid: list[int]) -> str:
     >>> rev_hidden_states([1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 2, 1])
     'NNCCCCCCNNRRRRRRN'
     """
-    return ''.join("CNR"[h] for h in hid)
-
+    return ''.join('CNR'[HMM] for HMM in hid)
 ```
 
 
@@ -221,9 +217,6 @@ I don't really care how you do it, but I want it done. Write me a function that 
 
 
 ```python
-# FIXME: You need to implement the corresponding function for annotations
-# In the figure above, the states map as C -> 0/1/2, N -> 3 and R -> 4/5/6 but
-# you do not need to use that; but you do need to be consistent everywhere
 def hidden_states7(x: str) -> list[int]:
     """
     Map a genome annotation to hidden states.
@@ -231,19 +224,28 @@ def hidden_states7(x: str) -> list[int]:
     >>> hidden_states7('NNCCCCCCNNRRRRRRN')
     [3, 3, 0, 1, 2, 0, 1, 2, 3, 3, 4, 5, 6, 4, 5, 6, 3]
     """
-    ann = [-1] * len(x)
-    for i, a in enumerate(x):
-        match a:
-            case 'N': ann[i] = 3
-            case 'C' if x[i - 1] != 'C':
-                ann[i] = 0
-            case 'C' if x[i - 1] == 'C':
-                ann[i] = (ann[i - 1] + 1) % 3
-            case 'R' if x[i - 1] != 'R':
-                ann[i] = 4
-            case 'R' if x[i - 1] == 'R':
-                ann[i] = (ann[i - 1] -4 + 1) % 3 + 4
-    return ann
+    HS_list = []
+    for HS in x:
+        if HS_list == []:
+            if HS == 'C':
+                HS_list.append(0)
+            elif HS == 'N':
+                HS_list.append(3)
+            else:
+                HS_list.append(4)
+        elif HS == 'N':
+            HS_list.append(3)
+        elif HS == 'C':
+            if HS_list[-1] < 2:
+                HS_list.append(HS_list[-1]+1)
+            else:
+                HS_list.append(0)
+        else:
+            if 3 < HS_list[-1] and 6 > HS_list[-1]:
+                HS_list.append(HS_list[-1]+1)
+            else:
+                HS_list.append(4)
+    return HS_list
 
 def rev_hidden_states7(hid: list[int]) -> str:
     """
@@ -255,7 +257,18 @@ def rev_hidden_states7(hid: list[int]) -> str:
     >>> rev_hidden_states7([3, 3, 0, 1, 2, 0, 1, 2, 3, 3, 4, 5, 6, 4, 5, 6, 3])
     'NNCCCCCCNNRRRRRRN'
     """
-    return ''.join("CCCNRRR"[h] for h in hid)
+    S = ''
+    for HS in hid:
+        if HS < 3:
+            S += 'C'
+        elif HS == 3:
+            S += 'N'
+        else:
+            S += 'R'
+    return S
+
+#hidden_states7('NNCCCCCCNNRRRRRRN')
+#rev_hidden_states7([3, 3, 0, 1, 2, 0, 1, 2, 3, 3, 4, 5, 6, 4, 5, 6, 3])
 
 ```
 
@@ -293,6 +306,9 @@ E = np.array([
     [0.5, 0.1, 0.2, 0.2],  # Emissions from N
     [0.2, 0.2, 0.3, 0.3],  # Emissions from R
 ])
+
+#print(T[1][1])
+#print(E[1][1])
 ```
 
 The parameters here are not chosen to fit the model (which should be obvious from how regular the numbers look), but they are valid parameters in the sense that the initial transitions sum to one, that the out transitions sum to one for each state, and that the emissions sum to one for each state as well.
@@ -349,7 +365,6 @@ def hmm_params(pi: ArrayLike, T: ArrayLike, E: ArrayLike) -> HMMParam:
 
 theta = hmm_params(pi, T, E) # combining parameters from above
 
-
 ```
 
 Likewise, we can wrap up our data:
@@ -388,7 +403,7 @@ data2_3 = hmm_data(3, genome2['genome'], genome2['annotation'])
 data2_7 = hmm_data(7, genome2['genome'], genome2['annotation'])
 ```
 
-The probability that we go from state `s` to state `t` is `T[s,t]`, so with our mapped sequences, let's call them `obs` for observed and `hid` for hidden, the probability of the transition at position `i` should be `T[hid[i],hid[i+1]]`. The probabiity of emitting what we have at position is `E[hid[i],obs[i]]`, and the probability of starting in the first state it `pi[hid[0]]`.
+The probability that we go from state `s` to state `t` is `T[s,t]`, so with our mapped sequences, let's call them `obs` for observed and `hid` for hidden, the probability of the transition at position `i` should be `T[hid[i],hid[i+1]]`. The probability of emitting what we have at position `i` is `E[hid[i],obs[i]]`, and the probability of starting in the first state is `pi[hid[0]]`.
 
 Use these observations to implement a function that computes the likelihood of a genomic sequence and an annotation.
 
@@ -397,18 +412,30 @@ Use these observations to implement a function that computes the likelihood of a
 def lik(data: HMMData, theta: HMMParam) -> float:
     """
     Compute the likelihood of the data (obs,hid) given the parameters, theta.
+
+    I assume E to be ordered as such: A C G T
+    And T as such C N R
+    I am also gonna assume that if there has been a C or R the next two will be considered 100% likely to be more C or R.
     """
     k1, x, z = data
     k2, pi, T, E = theta
     assert k1 == k2
-    
-    # FIXME: compute the likelihood
-    p = pi[z[0]]
-    for i, s in enumerate(z[1:]):
-        p *= T[z[i], s]
-    for i, _ in enumerate(z):
-        p *= E[z[i], x[i]]
-    return p
+   
+    obs = x
+    hid = z
+    i = -1
+    Em=1
+    Tr=1
+    for HSP in hid:
+        i += 1
+        if i==0:
+            Em *= E[hid[i]][obs[i]]
+        else:
+            Em *= E[hid[i]][obs[i]]
+            Tr *= T[hid[i-1]][hid[i]]
+    likelihood = Em*Tr
+    print('Em=',Em,'Tr=',Tr,"likelihood=",likelihood)
+    return likelihood
 
 ```
 
@@ -420,6 +447,11 @@ assert_almost_equal(lik(hmm_data(3, 'AC', 'NC'), theta), 0.01)
 assert_almost_equal(lik(hmm_data(3, 'ACGTTCGA', 'NCCCNRRR'), theta), 7.86432e-09)
 
 ```
+
+    Em= 0.5 Tr= 1 likelihood= 0.5
+    Em= 0.1 Tr= 0.1 likelihood= 0.010000000000000002
+    Em= 9.600000000000005e-06 Tr= 0.0008192000000000004 likelihood= 7.864320000000008e-09
+
 
 As should be obvious here, the likelihood gets very small very quickly. This is expected, since we are multiplying numbers in the range 0 to 1 together, and there isn't anything we can do about. It is also a problem, however, since floating point numbers have a finite resolution and eventually we will see all the likelihoods as indistinguishable from zero.
 
@@ -452,12 +484,23 @@ def log_lik(data: HMMData, theta: HMMParam) -> float:
     pi, T, E = log_each(pi), log_each(T), log_each(E)
 
     # FIXME: compute the log likelihood
-    p = pi[z[0]]
-    for i, s in enumerate(z[1:]):
-        p += T[z[i], s]
-    for i, _ in enumerate(z):
-        p += E[z[i], x[i]]
-    return p
+    obs = x
+    hid = z
+    i = -1
+    Em=0
+    Tr=0
+    for HSP in z:
+        i += 1
+        #print(i,Em,Tr)
+        if i==0:
+            Em += E[z[i]][x[i]]
+        else:
+            Em += E[z[i]][x[i]]
+            Tr += T[z[i-1]][z[i]]
+    likelihood = Em+Tr
+    print('Em=',Em,'Tr=',Tr,"likelihood=",likelihood)
+    return likelihood
+
 
 ```
 
@@ -470,15 +513,24 @@ assert_almost_equal(log_lik(hmm_data(3, 'ACGTTCGA', 'NCCCNRRR'), theta), np.log(
 
 ```
 
+    Em= -0.6931471805599453 Tr= 0 likelihood= -0.6931471805599453
+    Em= -2.3025850929940455 Tr= -2.3025850929940455 likelihood= -4.605170185988091
+    Em= -11.553747459490483 Tr= -7.10718230367903 likelihood= -18.660929763169513
+
+
 If we can compute the log-likelihood of short sequences, we should also be able to compute them for our full genomes--it just might take a little longer.
 
 
 ```python
-assert_almost_equal(log_lik(data1_3, theta), -3055335.10505437)
+assert_almost_equal(log_lik(data1_3, theta), -3055335.10505437, 4)
 assert_almost_equal(log_lik(data2_3, theta), -float("inf"))
 ```
 
-The log-likelihood for the second genome is -inf, which means that the likelihood is zero (in this context). That is probably because the data contains a transition that has probability zero in the parameters, and that is likely an indication that the parameters we pulled our of a hat weren't that good after all. We should probably estimate the parameters instead of guessing them.
+    Em= -2636956.6792823374 Tr= -418378.4257951592 likelihood= -3055335.1050774967
+    Em= -3115663.9837443535 Tr= -inf likelihood= -inf
+
+
+The log-likelihood for the second genome is -inf, which means that the likelihood is zero (in this context). That is probably because the data contains a transition that has probability zero in the parameters, and that is likely an indication that the parameters we pulled out of a hat weren't that good after all. We should probably estimate the parameters instead of guessing them.
 
 ## Estimating parameters
 
@@ -513,11 +565,40 @@ For the emission probabilities you need to count how often we see `(hid[i],obs[i
 def count_emissions(data: HMMData) -> ArrayLike:
     """Count how often we see the different emissions in the data."""
     k, obs, hid = data
-    counts = np.zeros((k, 4))  # How often each of the k states emit A,C,G,T.
-    # FIXME: count the emissions
-    for x, z in zip(obs, hid):
-        counts[z, x] += 1
+    counts = np.zeros((k, 4))  # How often each of the k states emit A,C,G,T.    
+    #print(counts)
+    #print(k)
+    #print(obs)
+    match k:
+        case 3:
+            ic = -1 #index counter
+            for i in obs:
+                ic += 1
+                match i:
+                    case 0:
+                        counts[hid[ic],0] = counts[hid[ic],0] + 1
+                    case 1:
+                        counts[hid[ic],1] = counts[hid[ic],1] + 1
+                    case 2:
+                        counts[hid[ic],2] = counts[hid[ic],2] + 1
+                    case 3:
+                        counts[hid[ic],3] = counts[hid[ic],3] + 1
+        case 7:
+            ic = -1 #index counter
+            for i in obs:
+                ic +=1
+                match i:
+                    case 0:
+                        counts[hid[ic],0] = counts[hid[ic],0] + 1
+                    case 1:
+                        counts[hid[ic],1] = counts[hid[ic],1] + 1
+                    case 2:
+                        counts[hid[ic],2] = counts[hid[ic],2] + 1
+                    case 3:
+                        counts[hid[ic],3] = counts[hid[ic],3] + 1
     return counts
+#count_emissions(data2_3)
+#print(data1_3[2])
 ```
 
 
@@ -544,9 +625,25 @@ def count_transitions(data: HMMData) -> ArrayLike:
     k, _, z = data
     counts = np.zeros((k, k))  # How often each of the k*k state transitions
     # FIXME: count the transitions
-    for i in range(len(z) - 1):
-        counts[z[i], z[i+1]] += 1
+
+    ic = -1 #index_counter
+    #len(z)
+    match k:
+        case 3:
+            for _ in z:
+                ic += 1
+                if ic > 0:
+                    counts[z[ic-1]][z[ic]] = counts[z[ic-1]][z[ic]] + 1
+        case 7:
+            for _ in z:
+                ic += 1
+                if ic > 0:
+                    counts[z[ic-1]][z[ic]] = counts[z[ic-1]][z[ic]] + 1
     return counts
+#print(count_transitions(data1_3))
+#    [0.8, 0.2, 0.0],  # Transitions out of C
+#    [0.1, 0.8, 0.1],  # Transitions out of N
+#    [0.0, 0.2, 0.8],  # Transitions out of R
 ```
 
 
@@ -597,7 +694,7 @@ theta1_7 = hmm_params(estimate_pi(data1_7), estimate_trans(data1_7), estimate_em
 theta2_7 = hmm_params(estimate_pi(data2_7), estimate_trans(data2_7), estimate_emis(data2_7))
 ```
 
-With the estimates, we can see what they likelihoods are. The estimates from a given data set should be the highest likelihood you can achive with that data for the given model, and if there are transitions or emissions missing in one of the data sets, it is entirely possible that the estimates from one genome will tell you that the data from the other genome is *impossible*. That is the name of the game in statistics.
+With the estimates, we can see what the likelihoods are. The estimates from a given data set should be the highest likelihood you can achive with that data for the given model, and if there are transitions or emissions missing in one of the data sets, it is entirely possible that the estimates from one genome will tell you that the data from the other genome is *impossible*. That is the name of the game in statistics.
 
 While not universally true, you would also generally expect that more free parameters will increase the maximum likelihood. The number of free parameters is, if we ignore pi where we only alow one single start state, are the number of value for each row minus one. You are free to set the rows any way you like, but they have to sum to one, so if you set all except one, the last parameter is already defined. With `K` states you have `K * (K-1)` parameters in the transition matrix and `K * 3` in the emission matrix. So, for the three state HMM you have 15 parameters and in the seven state HMM you have 63. Thus, you expect the seven state HMM to fit the data better than the three state HMM. This doesn't mean that the seven state HMM is better, we cannot conclude that from the maximum likelihood alone, it is simply a consequence of mathematical optimisation.
 
@@ -611,6 +708,16 @@ log_lik_data = [
 ]
 
 ```
+
+    Em= -2516522.183502735 Tr= -22261.530855171008 likelihood= -2538783.714357906
+    Em= -2520352.2097055023 Tr= -22317.674634612773 likelihood= -2542669.884340115
+    Em= -2973499.295986534 Tr= -inf likelihood= -inf
+    Em= -2968926.897422957 Tr= -27390.618502315087 likelihood= -2996317.515925272
+    Em= -2476482.684565818 Tr= -20669.17972293748 likelihood= -2497151.864288755
+    Em= -2482466.2848313884 Tr= -20725.32526532331 likelihood= -2503191.6100967117
+    Em= -2918090.0576234916 Tr= -inf likelihood= -inf
+    Em= -2911064.7837411915 Tr= -25405.713677352727 likelihood= -2936470.4974185443
+
 
 
 ```python
@@ -666,22 +773,35 @@ def viterbi(x: list[int], theta: HMMParam) -> ArrayLike:
     K, pi, T, E = theta
     N = len(x)
     V = np.empty((K, N))
-    # FIXME: fill in V
+    # Move all the parameters to log-space
     pi, T, E = log_each(pi), log_each(T), log_each(E)
-    # If you know more about numpy, you can do this much more efficiently,
-    # but this is the fundamental algorithm, so it is good to know how to
-    # implement it with the basic tools any language has.
-    for k in range(K):
-        V[k,0] = pi[k] + E[k,x[0]]
-    for i in range(1, len(x)):
-        for k in range(K):
-            V[k,i] = E[k,x[i]] + max(
-                V[kk, i-1] + T[kk, k]
-                for kk in range(K)
-            )
+    # FIXME: fill in V
+    #print(x,N,K)
+    #print(V)
+    #V[0,x[0]] = pi[0] + E[0,x[0]]
+    match K:
+        case 3:
+            for i in range(K):
+                #print(V, "1st i")
+                V[i,x[0]] = pi[i] + E[i,x[0]]
+            for i in range(1,N):
+                #print(V, "2nd i")
+                for k in range(K):
+                    V[k,i] = E[k,x[i]] + max(V[kk, i-1] + T[kk,k] for kk in range(K)) 
+        case 7:
+            for i in range(K):
+                V[i,x[0]] = pi[i] + E[i,x[0]]
+            for i in range(1,N):
+                for k in range(K):
+                    V[k,i] = E[k,x[i]] + max(V[kk, i-1] + T[kk,k] for kk in range(K)) 
     return V
-
+print(viterbi(observed_states('ACGT'), theta1_3))
 ```
+
+    [[        -inf  -9.27961958 -10.84327768 -12.06574901]
+     [ -1.14247397  -2.86626347  -4.54610983  -5.70374671]
+     [        -inf  -9.37600388 -11.07773941 -12.24541933]]
+
 
 
 ```python
@@ -750,17 +870,12 @@ def backtrack(x: list[int], V: ArrayLike, theta: HMMParam) -> list[int]:
     """Backtrack in the Viterbi table."""
     K, pi, T, E = theta
     pi, T, E = log_each(pi), log_each(T), log_each(E)
-    z = [None] * len(x)
+    N = len(x)
+    z = [None] * N
     z[-1] = argmax(V[s,-1] for s in range(K))
-    # FIXME: compute the rest of the hidden sequence
-    for i in range(1, len(x)):
-        # previous state is z[-i] and we want the one that lead to it
-        z[-(i+1)] = select(
-            ((V[s, -(i+1)] + T[s,z[-i]] + E[z[-i],x[-i]]) for s in range(K)), 
-            V[z[-i],-i]
-        )
+    for i in range(1, N):
+        z[-(i+1)] = select(((V[s, -(i+1)] + T[s,z[-i]] + E[z[-i],x[-i]]) for s in range(K)), V[z[-i], -i])
     return z
-
 ```
 
 We can combine the `viterbi()` and `backtrack()` function to get our `decode()` function:
@@ -851,7 +966,7 @@ print(f"HMM-3, data2 | theta2, accuracy: {100.0 * accuracy(genome2['annotation']
 
     How do we do for genome 1 with the two estimates?
     HMM-3, data1 | theta1, accuracy: 39.22%
-    HMM-3, data1 | theta2, accuracy: 39.22%
+    HMM-3, data1 | theta2, accuracy: 39.33%
     
     How do we do for genome 2 with the two estimates?
     HMM-3, data2 | theta1, accuracy: 37.31%
@@ -864,10 +979,37 @@ Anyway, there are plenty of other classes that will teach you about such data sc
 
 
 ```python
-# Decode genome 1 with model/param 1_7
 decoded_1_17 = decode(genome1['genome'], theta1_7)
+decoded_1_27 = decode(genome1['genome'], theta2_7)
+decoded_2_17 = decode(genome2['genome'], theta1_7)
+decoded_2_27 = decode(genome2['genome'], theta2_7)
+```
+
+
+```python
+print("How do we do for genome 1 with the two estimates?")
+print(f"HMM-7, data1 | theta1, accuracy: {100.0 * accuracy(genome1['annotation'], decoded_1_17):.2f}%")
+print(f"HMM-7, data1 | theta2, accuracy: {100.0 * accuracy(genome1['annotation'], decoded_1_27):.2f}%")
+print()
+
+print("How do we do for genome 2 with the two estimates?")
+print(f"HMM-7, data2 | theta1, accuracy: {100.0 * accuracy(genome2['annotation'], decoded_2_17):.2f}%")
+print(f"HMM-7, data2 | theta2, accuracy: {100.0 * accuracy(genome2['annotation'], decoded_2_27):.2f}%")
 
 ```
+
+    How do we do for genome 1 with the two estimates?
+    HMM-7, data1 | theta1, accuracy: 40.10%
+    HMM-7, data1 | theta2, accuracy: 40.21%
+    
+    How do we do for genome 2 with the two estimates?
+    HMM-7, data2 | theta1, accuracy: 37.99%
+    HMM-7, data2 | theta2, accuracy: 38.01%
+
+
+Don't expect a great leap here. The model is still too simple. But it should improve upon the three state model. A general rule of thumb is that the more complex a model is, the better you can predict on data that you have used to fit the parameters, but if the model gets too complex, the same model will do worse on other data sets. We won't see this here, though. A seven state HMM is not a complex model when it comes to analysing a full genome, even if it is bacterial.
+
+If you feel up to it, you are welcome to try to build a more complex HMM. Would it get better if you included start and stop codons? If the distribution of nucleotides in coding regions to codon position into account? You have all you need to explore this, you just need to update the models as specified in the three vectors/matrices.
 
 ## Testing
 
